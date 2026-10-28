@@ -2,7 +2,7 @@
 from typing import Optional
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 try:
     from google import genai
@@ -14,8 +14,9 @@ except ImportError:
 
 class GeminiClient:
     def __init__(self):
+        load_dotenv(override=True)
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+        self.model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.client = None
         if self.api_key and genai:
             try:
@@ -52,7 +53,6 @@ class GeminiClient:
     def generate_json(self, prompt: str, system_instruction: Optional[str] = None) -> dict:
         import json
         text = self.generate_content(prompt, system_instruction, temperature=0.1)
-        # Try to extract JSON from markdown code blocks
         text = text.strip()
         if "```json" in text:
             start = text.find("```json") + 7
