@@ -1,4 +1,4 @@
-import os
+﻿import os
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -81,6 +81,28 @@ st.markdown("""
         border-color: rgba(96, 165, 250, 0.4);
         box-shadow: 0 25px 50px rgba(59, 130, 246, 0.2);
         transform: translateY(-2px);
+    }
+    
+    .quick-summary {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+        border: 1px solid rgba(96, 165, 250, 0.4);
+        border-radius: 16px;
+        padding: 1.5rem 2rem;
+        margin: 1.5rem 0;
+        backdrop-filter: blur(10px);
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .quick-summary h3 {
+        color: #60a5fa;
+        margin-top: 0;
+        font-weight: 700;
+    }
+    
+    .quick-summary p {
+        color: #e2e8f0;
+        line-height: 1.7;
+        margin: 0;
     }
     
     .stTabs [data-baseweb="tab-list"] {
@@ -191,15 +213,6 @@ st.markdown("""
         }
     }
     
-    @keyframes pulse {
-        0%, 100% {
-            opacity: 1;
-        }
-        50% {
-            opacity: 0.5;
-        }
-    }
-    
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -228,6 +241,7 @@ def main():
                 if result.get('success'):
                     st.session_state.document = result
                     st.session_state.analysis_done = False
+                    st.session_state.quick_summary = None
                     st.success("✅ Document processed successfully!")
                 else:
                     st.error(f"❌ {result.get('error')}")
@@ -249,17 +263,53 @@ def main():
                     if result.get('success'):
                         st.session_state.document = result
                         st.session_state.analysis_done = False
+                        st.session_state.quick_summary = None
                         st.success("✅ Text processed successfully!")
                     else:
                         st.error(f"❌ {result.get('error')}")
     
     st.markdown('</div>', unsafe_allow_html=True)
     
+    # Quick Summary section
+    if 'document' in st.session_state and st.session_state.document:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        col_q1, col_q2 = st.columns([3, 1])
+        with col_q1:
+            st.markdown("### ⚡ Quick Summary")
+            st.markdown("Get a short overview at a glance")
+        with col_q2:
+            if st.button("📝 Get Quick Summary", use_container_width=True):
+                with st.spinner("Generating quick summary..."):
+                    try:
+                        summarizer = Summarizer()
+                        doc = st.session_state.document
+                        summary_result = summarizer.generate_summary(doc)
+                        if summary_result.get('success'):
+                            s = summary_result['summary']
+                            quick_text = f"**What it is:** {s.get('what_is_it', 'N/A')}\n\n**Main purpose:** {s.get('main_purpose', 'N/A')}\n\n"
+                            if s.get('key_terms_conditions'):
+                                quick_text += f"**Key points:** {', '.join(s.get('key_terms_conditions')[:3])}\n\n"
+                            if s.get('user_rights'):
+                                quick_text += f"**Your rights:** {', '.join(s.get('user_rights')[:2])}\n\n"
+                            if s.get('cancellation_termination') and s.get('cancellation_termination') != "Not mentioned":
+                                quick_text += f"**Cancellation:** {s.get('cancellation_termination')}\n\n"
+                            st.session_state.quick_summary = quick_text
+                        else:
+                            st.error(f"❌ {summary_result.get('error')}")
+                    except Exception as e:
+                        st.error(f"❌ {str(e)}")
+        
+        if st.session_state.get('quick_summary'):
+            st.markdown(f'<div class="quick-summary"><h3>📌 Quick Catch-Up</h3><p>{st.session_state.quick_summary.replace(chr(10), "<br>")}</p></div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
     # Analysis section
     if 'document' in st.session_state and st.session_state.document:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown("### 🧠 AI-Powered Analysis")
+        st.markdown("### 🧠 AI-Powered Full Analysis")
         
         if not st.session_state.get('analysis_done'):
             col1, col2, col3 = st.columns([1, 2, 1])
@@ -413,7 +463,7 @@ def main():
                                 else:
                                     st.error(f"❌ {result.get('error')}")
                             except Exception as e:
-                                st.error(f"❌ Error: {str(e)}")
+                                st.error(f"❌ {str(e)}")
                     else:
                         st.warning("⚠️ Please enter a question")
             
